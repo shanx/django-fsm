@@ -73,12 +73,16 @@ class Transition(object):
     def name(self):
         return self.method.__name__
 
-    def has_perm(self, user):
+    def has_perm(self, user, obj=None):
         if not self.permission:
             return True
-        elif callable(self.permission) and self.permission(user):
-            return True
-        elif user.has_perm(self.permission):
+        elif callable(self.permission):
+            try:
+                return self.permission(user, obj)
+            except TypeError:
+                # fallback to user-wide permission check
+                return self.permission(user)
+        elif user.has_perm(self.permission, obj):
             return True
         else:
             return False
