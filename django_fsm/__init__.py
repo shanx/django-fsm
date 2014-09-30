@@ -287,6 +287,7 @@ class FSMFieldMixin(object):
             'source': current_state,
             'target': next_state
         }
+        signal_kwargs.update(**kwargs)
 
         pre_transition.send(**signal_kwargs)
 
