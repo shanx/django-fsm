@@ -79,12 +79,16 @@ class Transition(object):
     def name(self):
         return self.method.__name__
 
-    def has_perm(self, user):
+    def has_perm(self, user, obj=None):
         if not self.permission:
             return True
-        elif callable(self.permission) and self.permission(user):
-            return True
-        elif user.has_perm(self.permission):
+        elif callable(self.permission):
+            try:
+                return self.permission(user, obj)
+            except TypeError:
+                # fallback to user-wide permission check
+                return self.permission(user)
+        elif user.has_perm(self.permission, obj):
             return True
         else:
             return False
@@ -121,7 +125,7 @@ def get_available_user_FIELD_transitions(instance, user, field):
     with all conditions met and user have rights on it
     """
     for transition in get_available_FIELD_transitions(instance, field):
-        if transition.has_perm(user):
+        if transition.has_perm(user, instance):
             yield transition
 
 
@@ -177,7 +181,7 @@ class FSMMeta(object):
         if not transition:
             return False
         else:
-            return transition.has_perm(user)
+            return transition.has_perm(user, instance)
 
     def next_state(self, current_state):
         transition = self.get_transition(current_state)
@@ -289,6 +293,7 @@ class FSMFieldMixin(object):
             'source': current_state,
             'target': next_state
         }
+        signal_kwargs.update(**kwargs)
 
         pre_transition.send(**signal_kwargs)
 
@@ -326,7 +331,8 @@ class FSMFieldMixin(object):
     def contribute_to_class(self, cls, name, virtual_only=False):
         self.base_cls = cls
 
-        super(FSMFieldMixin, self).contribute_to_class(cls, name, virtual_only=virtual_only)
+        #super(FSMFieldMixin, self).contribute_to_class(cls, name, virtual_only=virtual_only)
+        super(FSMFieldMixin, self).contribute_to_class(cls, name)
         setattr(cls, self.name, self.descriptor_class(self))
         setattr(cls, 'get_all_{0}_transitions'.format(self.name),
                 curry(get_all_FIELD_transitions, field=self))
