@@ -32,7 +32,7 @@ class ConditionalTest(TestCase):
     def setUp(self):
         self.model = BlogPostWithConditions()
 
-    def test_initial_staet(self):
+    def test_initial_state(self):
         self.assertEqual(self.model.state, 'new')
 
     def test_known_transition_should_succeed(self):
